@@ -1,0 +1,399 @@
+from tkinter import *
+from tkinter.messagebox import *
+from tkinter.scrolledtext import *
+from sqlite3 import *
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from requests import get
+
+
+def jump1():
+    mw.withdraw()
+    aw.deiconify()
+
+
+def jump2():
+    aw.withdraw()
+    mw.deiconify()
+
+
+def save1():
+    con = None
+    try:
+        con = connect("EMS.db")
+        cursor = con.cursor()
+        sql = "insert into employee values('%d', '%s', '%f')"
+
+        try:
+            eid = int(aw_ent_id.get())
+        except ValueError:
+            showerror("Issue", "ID should contain Integers only")
+            return
+        if eid < 1:
+            showerror("Issue", "Min id should be 1")
+            return
+
+        name = aw_ent_name.get()
+        if name == "":
+            showerror("Issue", "Name is empty")
+            return
+
+        if not name.isalpha():
+            showerror("Issue", "Name should contain only alphabets")
+            return
+
+        try:
+            salary = float(aw_ent_sal.get())
+        except ValueError:
+            showerror("Issue", "Salary should contain Integers only")
+            return
+        if salary < 1:
+            showerror("Issue", "Salary Min id should be 1")
+            return
+
+        cursor.execute(sql % (eid, name, salary))
+        con.commit()
+        showinfo("SUCCESS", "RECORD CREATED")
+        aw_ent_id.delete(0, END)
+        aw_ent_name.delete(0, END)
+        aw_ent_sal.delete(0, END)
+        aw_ent_id.focus()
+    except Exception as e:
+        con.rollback()
+        showerror("Issue", e)
+    finally:
+        if con is not None:
+            con.close()
+
+
+def jump3():
+    mw.withdraw()
+    vw.deiconify()
+    vw_st_view.delete(1.0, END)
+    con = None
+    try:
+        con = connect("EMS.db")
+        cursor = con.cursor()
+        sql = "select * from employee"
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        info = ""
+        for d in data:
+            info += " eid: " + str(d[0]) + "| name: " + \
+                str(d[1]) + "| salary: " + str(d[2]) + "\n"
+        vw_st_view.insert(INSERT, info)
+    except Exception as e:
+        showerror("issue ", e)
+    finally:
+        if con is not None:
+            con.close()
+
+
+def jump4():
+    vw.withdraw()
+    mw.deiconify()
+
+
+def jump5():
+    mw.withdraw()
+    uw.deiconify()
+
+
+def jump6():
+    uw.withdraw()
+    mw.deiconify()
+# ----------------------------Update---------------------------
+
+
+def save2():
+    con = None
+    try:
+        con = connect("EMS.db")
+        cursor = con.cursor()
+        try:
+            eid = int(uw_ent_id.get())
+        except ValueError:
+            showerror("Issue", "ID should contain Integers only")
+            return
+
+        if eid < 1:
+            showerror("Issue", "Min id should be 1")
+            return
+
+        name = uw_ent_name.get()
+        if name == "":
+            showerror("Issue", "Name is empty")
+            return
+
+        if not name.isalpha():
+            showerror("Issue", "Name should contain only alphabets")
+            return
+
+        try:
+            salary = float(uw_ent_sal.get())
+        except ValueError:
+            showerror("Issue", "Salary should contain Integers only")
+            return
+        if salary < 1:
+            showerror("Issue", "Salary Min id should be 1")
+            return
+
+        update_query = "UPDATE employee SET name = '%s', salary = '%f' WHERE eid = %d;"
+        cursor.execute(update_query % (name, salary, eid))
+        con.commit()
+        showinfo("SUCCESS", "RECORD UPDATED")
+        uw_ent_id.delete(0, END)
+        uw_ent_name.delete(0, END)
+        uw_ent_sal.delete(0, END)
+        uw_ent_id.focus()
+
+    except Exception as e:
+        con.rollback()
+        showerror("Issue", e)
+
+    finally:
+        if con is not None:
+            con.close()
+
+# ------------------------------delete----------------------------
+
+
+def jump8():
+    mw.withdraw()
+    dw.deiconify()
+
+
+def back_to_main():
+    dw.withdraw()
+    mw.deiconify()
+
+
+def savedata():
+    con = None
+    try:
+        con = connect("EMS.db")
+        cursor = con.cursor()
+        sql = "delete from employee where eid = '%d'"
+        eid = int(dw_ent_id.get())
+        if eid < 1:
+            showerror("Issue", "id should be min 1")
+            return
+        cursor.execute(sql % (eid))
+        con.commit()
+        dw_ent_id.delete(0, END)
+        dw_ent_id.focus()
+        showinfo("Success", "Record deleted")
+    except ValueError:
+        showerror("Issue", "id should be integer only")
+    except Exception as e:
+        con.rollback()
+        showerror("Issue", e)
+    finally:
+        if con is not None:
+            con.close()
+
+
+# -------------------------------chart------------------------------
+
+
+def jump7():
+    con = None
+    try:
+        con = connect("EMS.db")
+        cursor = con.cursor()
+        sql = "SELECT name, salary FROM   employee ORDER BY salary DESC LIMIT 5"
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        name = []
+        salary = []
+        for i in data:
+            name.append(i[0])
+            salary.append(i[1])
+        c = ['red', 'yellow', 'black', 'blue', 'orange']
+        plt.figure(figsize=(7, 5))
+        plt.rcParams.update({'text.color': "red", 'axes.labelcolor': "green"})
+        ax = plt.axes()
+        ax.set_facecolor("lightblue")
+
+        plt.bar(name, salary, color=c)
+        plt.xlabel("Names of Employee")
+        plt.ylabel("Salary of Employee")
+        plt.title("Top 5 Highest Salaried Employee")
+        plt.grid()
+        plt.show()
+    except Exception as e:
+        con.rollback()
+        showerror("issue", e)
+    finally:
+        if con is not None:
+            con.close()
+
+
+# -----------------------xx---------------------------------------------------------------------------
+mw = Tk()
+mw.title("E.M.S")
+mw.configure(bg="lightgreen")
+mw.geometry("400x500+80+80")
+f = ("Times New Roman", 16, "bold", "underline")
+b = ("Arial", 18, "bold")
+
+mw_header_ems = Label(
+    mw, text="EMPLOYEE MANAGEMENT SYSTEM", font=f, bg="lightgreen")
+mw_header_ems.pack(pady=10)
+
+mw_btn_add = Button(mw, text="ADD", font=b, width=8, command=jump1)
+mw_btn_add.pack(pady=10)
+
+mw_btn_view = Button(mw, text="VIEW", font=b, width=8, command=jump3)
+mw_btn_view.pack(pady=10)
+
+mw_btn_upd = Button(mw, text="UPDATE", font=b, width=8, command=jump5)
+mw_btn_upd.pack(pady=10)
+
+mw_btn_dlt = Button(mw, text="DELETE", font=b, width=8, command=jump8)
+mw_btn_dlt.pack(pady=10)
+
+mw_btn_chart = Button(mw, text="CHARTS", font=b, width=8, command=jump7)
+mw_btn_chart.pack(pady=10)
+
+lab_location = Label(mw, text="Location :",font=("Calibri", 15),  bg="#B4EEB4")
+lab_location.place(x=10, y=430)
+lab_loc = Label(mw, text="", font=("Calibri", 15, "bold"),  bg="#B4EEB4")
+lab_loc.place(x=110, y=430)
+
+ipinfo_url = "https://ipinfo.io/"
+res = get(ipinfo_url)
+data = res.json()
+city_name = data["city"]
+lab_loc.config(text=city_name)
+
+
+lab_temp = Label(mw, text="Temp : ", font=("Calibri", 15), bg="#B4EEB4")
+lab_temp.place(x=200, y=430)
+lab_temp = Label(mw, text="", font=("Calibri", 15, "bold"), bg="#B4EEB4")
+lab_temp.place(x=280, y=430)
+
+owm_url = "https://api.openweathermap.org/data/2.5/weather"
+owm_params = {
+    "q": city_name,
+    "appid": "45e651a8b38664ad51ab670dd9cbf96b",
+    "units": "metric"
+}
+
+res = get(owm_url, params=owm_params)
+data = res.json()
+
+temp = data["main"]["temp"]
+lab_temp.config(text=temp)
+
+
+aw = Tk()
+aw.title("ADD EMP")
+aw.configure(bg="lightblue")
+aw.geometry("400x500+80+80")
+a = ("Times New Roman", 16, "bold", "underline")
+c = ("Arial", 18, "bold")
+
+aw_lab_id = Label(aw, text="ENTER ID", font=a, bg="lightblue")
+aw_ent_id = Entry(aw, font=c)
+aw_lab_id.pack(pady=10)
+aw_ent_id.pack(pady=10)
+
+aw_lab_name = Label(aw, text="ENTER NAME", font=a, bg="lightblue")
+aw_ent_name = Entry(aw, font=c)
+aw_lab_name.pack(pady=10)
+aw_ent_name.pack(pady=10)
+
+aw_lab_sal = Label(aw, text="ENTER SALARY", font=a, bg="lightblue")
+aw_ent_sal = Entry(aw, font=c)
+aw_lab_sal.pack(pady=10)
+aw_ent_sal.pack(pady=10)
+
+aw_btn_save = Button(aw, text="SAVE", font=c, command=save1)
+aw_btn_save.pack(pady=20)
+
+aw_btn_back = Button(aw, text="BACK", font=c, command=jump2)
+aw_btn_back.pack(pady=10)
+aw.withdraw()
+
+vw = Tk()
+vw.title("VIEW EMP")
+vw.configure(bg="GoldenRod")
+vw.geometry("400x500+80+80")
+a = ("Times New Roman", 16, "bold", "underline")
+c = ("Arial", 16, "bold")
+
+vw_st_view = ScrolledText(vw, font=c, width=29, height=14)
+vw_st_view.pack(pady=10)
+
+vw_btn_back = Button(vw, text="BACK", font=c, command=jump4)
+vw_btn_back.pack(pady=20)
+vw.withdraw()
+
+uw = Tk()
+uw.title("UPDATE EMP")
+uw.configure(bg="Bisque")
+uw.geometry("400x500+80+80")
+a = ("Times New Roman", 16, "bold", "underline")
+c = ("Arial", 18, "bold")
+
+uw_lab_id = Label(uw, text="ENTER ID", font=a, bg="Bisque")
+uw_ent_id = Entry(uw, font=c)
+uw_lab_id.pack(pady=10)
+uw_ent_id.pack(pady=10)
+
+uw_lab_name = Label(uw, text="ENTER NAME", font=a, bg="Bisque")
+uw_ent_name = Entry(uw, font=c)
+uw_lab_name.pack(pady=10)
+uw_ent_name.pack(pady=10)
+
+uw_lab_sal = Label(uw, text="ENTER SALARY", font=a, bg="Bisque")
+uw_ent_sal = Entry(uw, font=c)
+uw_lab_sal.pack(pady=10)
+uw_ent_sal.pack(pady=10)
+
+uw_btn_save = Button(uw, text="SAVE", font=c, command=save2)
+uw_btn_save.pack(pady=20)
+
+uw_btn_back = Button(uw, text="BACK", font=c, command=jump6)
+uw_btn_back.pack(pady=10)
+uw.withdraw()
+
+dw = Tk()
+dw.title("DELETE EMP")
+dw.configure(bg="CadetBlue")
+dw.geometry("400x500+80+80")
+a = ("Times New Roman", 16, "bold", "underline")
+c = ("Arial", 18, "bold")
+
+dw_lab_id = Label(dw, text="ENTER ID", font=a, bg="CadetBlue")
+dw_ent_id = Entry(dw, font=c)
+dw_lab_id.pack(pady=10)
+dw_ent_id.pack(pady=10)
+
+dw_btn_save = Button(dw, text="SAVE", font=c, command=savedata)
+dw_btn_save.pack(pady=20)
+
+dw_btn_back = Button(dw, text="BACK", font=c, command=back_to_main)
+dw_btn_back.pack(pady=10)
+dw.withdraw()
+# -----------------------------------------------------------------------------
+
+
+def exit():
+    if askokcancel("QUIT ", "Do you want to exit"):
+        mw.destroy()
+        aw.destroy()
+        vw.destroy()
+        uw.destroy()
+        dw.destroy()
+
+
+mw.protocol("WM_DELETE_WINDOW", exit)
+aw.protocol("WM_DELETE_WINDOW", exit)
+vw.protocol("WM_DELETE_WINDOW", exit)
+uw.protocol("WM_DELETE_WINDOW", exit)
+dw.protocol("WM_DELETE_WINDOW", exit)
+
+mw.mainloop()
